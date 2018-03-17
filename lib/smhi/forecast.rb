@@ -60,19 +60,24 @@ module SMHI
     # Do not use +::new+ to instantiate a new forecast, 
     # use +SMHI::parse+ instead
     def initialize(forecast, reference_time, lat, lon)
+      @reference_time = reference_time
+      @lat = lat
+      @lon = lon
       if forecast.is_a?(Hash) && forecast.keys.first.is_a?(Time)
+        @forecast = []
+        forecast.each do |k, v|
+          @forecast << TimeForecast.new(k, v)
+        end
+      elsif forecast.is_a?(Array) && forecast.first.is_a?(TimeForecast)
         @forecast = forecast
-        @reference_time = reference_time
-        @lat = lat
-        @lon = lon
       else
-        raise ArgumentError 'Illegal argument'
+        raise ArgumentError, 'Illegal argument'
       end
     end
 
     ##
     # call-seq:
-    #  each { |time, parameters| block } => fcst
+    #  each { |time_forecast| block } => fcst
     #  each => an_enumerator
     #
     # Calls block for each forecast, passing the timestamp and forecast as parameters
@@ -98,7 +103,7 @@ module SMHI
     # a Forecast object containing only that parameter.
     def [](value)
       case value
-      when Integer then @forecast[@reference_time + (value * 3600) + 3600]
+      when Integer then @forecast[value]
       when Time then at(value)
       when Symbol then send(value)
       when String then send(value.to_sym)
@@ -115,8 +120,8 @@ module SMHI
     # returns the value for that parameter, otherwise returns a Hash containing
     # all parameters.
     def at(time)
-      hour = Time.new(time.year, time.month, time.day, time.hour + 1)
-      @forecast[hour]
+      tfcst = @forecast.bsearch { |tf| tf.time >= time }
+      tfcst.parameters
     end
 
     ##
@@ -133,7 +138,7 @@ module SMHI
               else raise ArgumentError
               end
 
-      f = @forecast.select { |k| range.cover? k }
+      f = @forecast.select { |tf| range.cover? tf.time }
       Forecast.new(f, @reference_time, @lat, @lon)
     end
 
@@ -144,7 +149,7 @@ module SMHI
     #
     # Returns a Forecast object containing forecasts that lies before +time+.
     def until(time)
-      f = @forecast.select { |k| k < time }
+      f = @forecast.select { |tf| tf.time < time }
       Forecast.new(f, @reference_time, @lat, @lon)
     end
 
@@ -152,7 +157,7 @@ module SMHI
 
     # Returns a Forecast object containing forecasts that lies after +time+.
     def after(time)
-      f = @forecast.select { |k| k > time }
+      f = @forecast.select { |tf| tf.time > time }
       Forecast.new(f, @reference_time, @lat, @lon)
     end
 
@@ -175,16 +180,10 @@ module SMHI
     #
     # Return an array containing all forecast parameters.
     def values
-      @forecast.values
+      @forecast
     end
 
     alias :to_a :values
-
-    ##
-    # Returns a Hash containing the timestamps as keys and forecast parameters as values.
-    def to_h
-      @forecast
-    end
 
     private
 
@@ -200,7 +199,7 @@ module SMHI
 
     def select(parameter)
       hash = {}
-      @forecast.each { |k, v| hash[k] = v[parameter] }
+      @forecast.each { |tf| hash[tf.time] = tf[parameter] }
       Forecast.new(hash, @reference_time, @lat, @lon)
     end
   end

@@ -4,12 +4,13 @@
 require 'net/http'
 require 'time'
 require_relative 'smhi/forecast'
+require_relative 'smhi/time_forecast'
 
 ##
 # A flexible gem for getting weather forecasts from SMHI
 # 
 module SMHI
-  VERSION = '0.1.0'
+  VERSION = '0.2.0'
   BASE_URI = 'https://opendata-download-metfcst.smhi.se'
   API_ENDPOINT = '/api/category/pmp3g/version/2'
 
