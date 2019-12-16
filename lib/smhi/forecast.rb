@@ -5,7 +5,7 @@ module SMHI
   ##
   # A class for convenient access to a weather forecast from SMHI
   #
-  # SMHI::Forecast offers many ways to get the data one needs by providing several 
+  # SMHI::Forecast offers many ways to get the data one needs by providing several
   # aliases and allows chaining of methods to narrow down the search.
   #
   # ==Example:
@@ -18,16 +18,16 @@ module SMHI
   #   fcst.wd[2] # => Integer
   #   fcst['visibility'][0] # => Float
   #
-  # For more information on the available parameters, 
+  # For more information on the available parameters,
   # see http://opendata.smhi.se/apidocs/metfcst/parameters.html#parameter-table
   class Forecast
     include Enumerable
 
     attr_reader :forecast, :reference_time, :lat, :lon
 
-    PARAMETERS = [:msl, :t, :vis, :wd, :ws, :r, :tstm, :tcc_mean,
-                  :lcc_mean, :mcc_mean, :hcc_mean, :gust, :pmin, :pmax,
-                  :spp, :pcat, :pmean, :pmedian, :Wsymb2]
+    PARAMETERS = %i[msl t vis wd ws r tstm tcc_mean
+                    lcc_mean mcc_mean hcc_mean gust pmin pmax
+                    spp pcat pmean pmedian Wsymb2].freeze
     PARAMETER_ALIASES = { pressure: :msl,
                           temperature: :t,
                           visibility: :vis,
@@ -54,10 +54,10 @@ module SMHI
                           precipitation_median: :pmedian,
                           precip_median: :pmedian,
                           weather_symbol: :Wsymb2,
-                          symbol: :Wsymb2 }
-    
+                          symbol: :Wsymb2 }.freeze
+
     ##
-    # Do not use +::new+ to instantiate a new forecast, 
+    # Do not use +::new+ to instantiate a new forecast,
     # use +SMHI::parse+ instead
     def initialize(forecast, reference_time, lat, lon)
       @reference_time = reference_time
@@ -95,7 +95,7 @@ module SMHI
     #
     # If a +Integer n+ is passed, returns the n-th (zero-based) forecast.
     # If a +Time+ object is passed, returns the forecast for the specified time.
-    # If the forecast is already narrowed down to contain a single parameter, 
+    # If the forecast is already narrowed down to contain a single parameter,
     # returns the value for that parameter, otherwise returns a Hash containing
     # all parameters.
     #
@@ -107,7 +107,6 @@ module SMHI
       when Time then at(value)
       when Symbol then send(value)
       when String then send(value.to_sym)
-      else nil
       end
     end
 
@@ -116,7 +115,7 @@ module SMHI
     #  at(time) => Hash or Numeric
     #
     # Returns the forecast for the specified +time+.
-    # If the forecast is already narrowed down to contain a single parameter, 
+    # If the forecast is already narrowed down to contain a single parameter,
     # returns the value for that parameter, otherwise returns a Hash containing
     # all parameters.
     def at(time)
@@ -153,7 +152,7 @@ module SMHI
       Forecast.new(f, @reference_time, @lat, @lon)
     end
 
-    alias :before :until
+    alias before until
 
     # Returns a Forecast object containing forecasts that lies after +time+.
     def after(time)
@@ -171,7 +170,7 @@ module SMHI
       @forecast.inspect
     end
 
-    alias :to_s :inspect
+    alias to_s inspect
 
     ##
     # call-seq:
@@ -183,17 +182,21 @@ module SMHI
       @forecast
     end
 
-    alias :to_a :values
+    alias to_a values
+
+    def respond_to_missing?
+      true
+    end
 
     private
 
-    def method_missing(m, *args, &block)
-      if PARAMETERS.include? m
-        select(m)
-      elsif PARAMETER_ALIASES.include? m
-        select(PARAMETER_ALIASES[m])
+    def method_missing(sym, *args, &block)
+      if PARAMETERS.include? sym
+        select(sym)
+      elsif PARAMETER_ALIASES.include? sym
+        select(PARAMETER_ALIASES[sym])
       else
-        raise NoMethodError
+        super
       end
     end
 

@@ -8,7 +8,7 @@ require_relative 'smhi/time_forecast'
 
 ##
 # A flexible gem for getting weather forecasts from SMHI
-# 
+#
 module SMHI
   VERSION = '0.2.0'
   BASE_URI = 'https://opendata-download-metfcst.smhi.se'
@@ -48,6 +48,9 @@ module SMHI
       end
       fcst[Time.parse(h['validTime'])] = parameters
     end
-    Forecast.new(fcst, Time.parse(data['referenceTime']), data['geometry']['coordinates'][1], data['geometry']['coordinates'][0])
+    Forecast.new(fcst,
+                 Time.parse(data['referenceTime']),
+                 data['geometry']['coordinates'][1],
+                 data['geometry']['coordinates'][0])
   end
 end
